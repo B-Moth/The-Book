@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Here are the secrets</title>
+    <style>
+        body {
+            background: #1a1a1a;
+            color: #d4af37;
+            font-family: Georgia, serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .container {
+            text-align: center;
+            border: 3px solid #d4af37;
+            padding: 40px;
+            border-radius: 10px;
+            background: #2a2a2a;
+            max-width: 500px;
+        }
+        h1 {
+            margin-top: 0;
+            font-size: 28px;
+        }
+        input {
+            padding: 10px;
+            font-size: 18px;
+            width: 250px;
+            background: #3a3a3a;
+            border: 2px solid #d4af37;
+            color: #d4af37;
+            margin: 20px 0;
+        }
+        button {
+            padding: 10px 30px;
+            font-size: 18px;
+            background: #d4af37;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        button:hover {
+            background: #b8941f;
+        }
+        #result {
+            margin-top: 20px;
+            font-size: 16px;
+            line-height: 1.6;
+            white-space: pre-line;
+        }
+        .success { color: #4ade80; }
+        .fail { color: #ef4444; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔮 Talk to me 🔮</h1>
+        <p>What did you found ?</p>
+        
+        <input type="text" id="password" placeholder="..." />
+        <br>
+        <button onclick="checkPassword()">UNLOCK SECRETS</button>
+        
+        <div id="result"></div>
+    </div>
+
+    <script>
+        // Hash of correct password
+        const correctHash = '6c4ba8a3167b03d1acfcb305248e9c9ee483850a84fa36c8115da5f96d726c4a';
+        
+        // Encrypted message
+        const encryptedMessage = 'Y1FKQQteQVYdT1VYEmF5YxlOVFhIAR0TGFdEXEhEVk1eWUpFRlxTSxQKEmdTRVwMRgtIQEZPGEZORU5EUxkRPyI4Jjo0DAwFCh8OAgsZAh0FGQcOCQwHEh0YAwEdBB4BFgoEAAAZBxkP';
+
+        // Simple XOR encryption/decryption
+        function xorCipher(text, key) {
+            let result = '';
+            for (let i = 0; i < text.length; i++) {
+                result += String.fromCharCode(text.charCodeAt(i) ^ key.charCodeAt(i % key.length));
+            }
+            return result;
+        }
+
+        // Hash function
+        async function hashPassword(password) {
+            const encoder = new TextEncoder();
+            const data = encoder.encode(password);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+
+        // Decrypt function
+        function decryptMessage(encrypted, password) {
+            try {
+                const decoded = atob(encrypted);
+                return xorCipher(decoded, password);
+            } catch {
+                return null;
+            }
+        }
+
+        async function checkPassword() {
+            const input = document.getElementById('password').value;
+            const result = document.getElementById('result');
+            
+            const inputHash = await hashPassword(input);
+            
+            if (inputHash === correctHash) {
+                // Decrypt and show the secret message
+                const decrypted = decryptMessage(encryptedMessage, input);
+                
+                if (decrypted) {
+                    result.className = 'success';
+                    result.textContent = decrypted;
+                } else {
+                    result.className = 'fail';
+                    result.textContent = '✗ DECRYPTION FAILED';
+                }
+            } else {
+                result.className = 'fail';
+                result.textContent = '✗ ACCESS DENIED\n\nYou need to look deeper...';
+            }
+        }
+
+        document.getElementById('password').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') checkPassword();
+        });
+    </script>
+</body>
+</html>
