@@ -1,4 +1,4 @@
-// ENCRYPTION TOOL - Run this in browser console
+// ENCRYPTION TOOL - Paste in browser console
 
 function xorCipher(text, key) {
     let result = '';
@@ -13,7 +13,6 @@ function encryptMessage(message, password) {
     return btoa(encrypted);
 }
 
-// Generate hash for password
 async function generateHash(password) {
     const encoder = new TextEncoder();
     const data = encoder.encode(password);
@@ -22,13 +21,17 @@ async function generateHash(password) {
     return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
+// Generate a new password-message pair
+async function createSecret(password, message) {
+    const hash = await generateHash(password);
+    const encrypted = encryptMessage(message, password);
+    
+    console.log(`{
+    hash: '${hash}',
+    encrypted: '${encrypted}',
+    password: '${password}' // Remove this line in production
+},`);
+}
+
 // Example usage:
-const myPassword = "password";
-const myMessage = `secret`;
-
-console.log("=== YOUR ENCRYPTED DATA ===");
-console.log("\nPassword Hash:");
-generateHash(myPassword).then(hash => console.log(hash));
-
-console.log("\nEncrypted Message:");
-console.log(encryptMessage(myMessage, myPassword));
+createSecret("4", "Next clue: Look under the red book");
