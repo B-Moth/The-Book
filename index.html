@@ -11,8 +11,9 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
+            min-height: 100vh;
             margin: 0;
+            padding: 20px;
         }
         .container {
             text-align: center;
@@ -20,20 +21,31 @@
             padding: 40px;
             border-radius: 10px;
             background: #2a2a2a;
-            max-width: 500px;
+            max-width: 600px;
+            width: 100%;
         }
         h1 {
             margin-top: 0;
             font-size: 28px;
         }
-        input {
+        h2 {
+            color: #d4af37;
+            font-size: 20px;
+            margin-top: 30px;
+        }
+        input, textarea {
             padding: 10px;
-            font-size: 18px;
-            width: 250px;
+            font-size: 16px;
+            width: 90%;
             background: #3a3a3a;
             border: 2px solid #d4af37;
             color: #d4af37;
-            margin: 20px 0;
+            margin: 10px 0;
+            font-family: Georgia, serif;
+        }
+        textarea {
+            min-height: 80px;
+            resize: vertical;
         }
         button {
             padding: 10px 30px;
@@ -42,9 +54,22 @@
             border: none;
             cursor: pointer;
             font-weight: bold;
+            margin: 5px;
         }
         button:hover {
             background: #b8941f;
+        }
+        button.secondary {
+            background: #666;
+        }
+        button.secondary:hover {
+            background: #888;
+        }
+        button.danger {
+            background: #ef4444;
+        }
+        button.danger:hover {
+            background: #dc2626;
         }
         #result {
             margin-top: 20px;
@@ -54,45 +79,185 @@
         }
         .success { color: #4ade80; }
         .fail { color: #ef4444; }
+        .warning { color: #fbbf24; }
+        .info { color: #60a5fa; }
+        .admin-panel {
+            display: none;
+            margin-top: 30px;
+            border-top: 2px solid #d4af37;
+            padding-top: 20px;
+        }
+        .secret-list {
+            background: #1a1a1a;
+            border: 1px solid #d4af37;
+            padding: 15px;
+            margin: 15px 0;
+            text-align: left;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .secret-item {
+            padding: 10px;
+            margin: 5px 0;
+            background: #2a2a2a;
+            border-left: 3px solid #d4af37;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .secret-item button {
+            padding: 5px 10px;
+            font-size: 12px;
+        }
+        .admin-link {
+            position: fixed;
+            bottom: 10px;
+            right: 10px;
+            font-size: 12px;
+            opacity: 0.3;
+            cursor: pointer;
+        }
+        .admin-link:hover {
+            opacity: 1;
+        }
+        .loading {
+            color: #60a5fa;
+            font-style: italic;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>🔮 Talk to me 🔮</h1>
-        <p>What have you found ?</p>
-        
-        <input type="text" id="password" placeholder="..." />
-        <br>
-        <button onclick="checkPassword()">UNLOCK SECRETS</button>
-        
-        <div id="result"></div>
+        <div id="mainPanel">
+            <h1>🔮 Talk to me 🔮</h1>
+            <p>What have you found ?</p>
+            
+            <input type="text" id="password" placeholder="..." />
+            <br>
+            <button onclick="checkPassword()">UNLOCK SECRETS</button>
+            
+            <div id="result"></div>
+        </div>
+
+        <div id="adminPanel" class="admin-panel">
+            <h2>⚙️ ADMIN MODE ⚙️</h2>
+            
+            <div style="margin: 20px 0;">
+                <p class="info">Connected to GitHub: <span id="repoInfo"></span></p>
+                <button class="secondary" onclick="reloadSecrets()">🔄 RELOAD FROM GITHUB</button>
+            </div>
+
+            <div style="margin: 20px 0;">
+                <h3 style="color: #d4af37;">Add New Secret</h3>
+                <input type="text" id="newPassword" placeholder="Enter password (e.g., 'sapphire')" style="width: 80%;" />
+                <br>
+                <textarea id="newMessage" placeholder="Enter secret message to reveal..."></textarea>
+                <br>
+                <button onclick="addSecret()">ADD & PUSH TO GITHUB</button>
+                <div id="addResult" style="margin-top: 10px;"></div>
+            </div>
+
+            <div style="margin: 20px 0;">
+                <h3 style="color: #d4af37;">Manage Secrets (<span id="secretCount">0</span> total)</h3>
+                <div id="secretList" class="secret-list"></div>
+            </div>
+
+            <div style="margin-top: 20px;">
+                <button class="secondary" onclick="exitAdmin()">EXIT ADMIN MODE</button>
+            </div>
+        </div>
     </div>
 
+    <div class="admin-link" onclick="showAdminLogin()">⚙️</div>
+
     <script>
-        // Multiple password-message pairs
-        const secrets = [
-            {
-                hash: '4b227777d4dd1fc61c6f884f48641d02b4d121d3fd328cb08b5531fcacdabf8a',
-                encrypted: 'AAwaDAQMAQUNGBQGGgAMAgUBBg',
-            },
-            {
-                hash: '2c624232cdd221771294dfbb310aca000a0df6ac8b66b696d90ef06fdefb64a3',
-                encrypted: 'DAAWAAgADQkBFBgKFgwADgkNCg',
-            },
-            {
-                hash: '6b51d431df5d7f141cbececcf79edf3dd861c3b4069f0b11661a3eefacbba918',
-                encrypted: 'BQofCgEKBAMIHhEAHwYJBAAHAw',
-            },
-            {
-                hash: 'b17ef6d19c7a5b1ee83b907c595526dcb1eb06db8227d650d5dda0a9f4ce8cd9',
-                encrypted: 'BQ4fDgEOBAcIGhEEHwIJAAADAw',
-            },
-            {
-                hash: 'f5ca38f748a1d6eaf726b8a42fb575c3c71f1864a8143301782de13da2d9202b',
-                encrypted: 'BggcCAIIBwELHBICHAQKBgMFAA==',
+        // ===== CONFIGURATION - UPDATE THESE =====
+        const GITHUB_CONFIG = {
+            owner: 'B-Moth',     // Your GitHub username
+            repo: 'The-Book',            // Your repository name
+            branch: 'main',                    // Branch name (usually 'main' or 'master')
+            secretsFile: 'secrets.json'        // Path to secrets file
+        };
+
+        const ADMIN_HASH = '240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9'; // admin123
+        // ========================================
+
+        let secrets = [];
+        let githubToken = null;
+        let secretsSha = null; // For GitHub API updates
+
+        // Load secrets from GitHub on page load
+        async function loadSecretsFromGitHub() {
+            try {
+                const url = `https://api.github.com/repos/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}/contents/${GITHUB_CONFIG.secretsFile}?ref=${GITHUB_CONFIG.branch}`;
+                
+                const response = await fetch(url);
+                if (!response.ok) {
+                    console.error('Failed to load secrets from GitHub');
+                    return false;
+                }
+
+                const data = await response.json();
+                secretsSha = data.sha; // Store SHA for updates
+                
+                const content = atob(data.content); // Decode base64
+                const secretsData = JSON.parse(content);
+                secrets = secretsData.secrets || [];
+                
+                console.log(`✓ Loaded ${secrets.length} secrets from GitHub`);
+                return true;
+            } catch (error) {
+                console.error('Error loading secrets:', error);
+                return false;
             }
-            // Add more password-message pairs here
-        ];
+        }
+
+        // Save secrets to GitHub
+        async function saveSecretsToGitHub() {
+            if (!githubToken) {
+                throw new Error('GitHub token not set');
+            }
+
+            const secretsData = {
+                secrets: secrets.map(s => ({
+                    hash: s.hash,
+                    encrypted: s.encrypted
+                }))
+            };
+
+            const content = btoa(JSON.stringify(secretsData, null, 2)); // Encode to base64
+
+            const url = `https://api.github.com/repos/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}/contents/${GITHUB_CONFIG.secretsFile}`;
+            
+            const body = {
+                message: `Update secrets (${secrets.length} total)`,
+                content: content,
+                branch: GITHUB_CONFIG.branch
+            };
+
+            if (secretsSha) {
+                body.sha = secretsSha; // Required for updates
+            }
+
+            const response = await fetch(url, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `token ${githubToken}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(body)
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.message || 'Failed to save to GitHub');
+            }
+
+            const data = await response.json();
+            secretsSha = data.content.sha; // Update SHA
+            
+            return true;
+        }
 
         // Simple XOR encryption/decryption
         function xorCipher(text, key) {
@@ -103,7 +268,6 @@
             return result;
         }
 
-        // Hash function
         async function hashPassword(password) {
             const encoder = new TextEncoder();
             const data = encoder.encode(password);
@@ -112,7 +276,6 @@
             return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
         }
 
-        // Decrypt function
         function decryptMessage(encrypted, password) {
             try {
                 const decoded = atob(encrypted);
@@ -122,16 +285,19 @@
             }
         }
 
+        function encryptMessage(message, password) {
+            const encrypted = xorCipher(message, password);
+            return btoa(encrypted);
+        }
+
         async function checkPassword() {
             const input = document.getElementById('password').value.toLowerCase().trim();
             const result = document.getElementById('result');
             
             const inputHash = await hashPassword(input);
             
-            // Check against all stored passwords
             for (let secret of secrets) {
                 if (inputHash === secret.hash) {
-                    // Found matching password
                     const decrypted = decryptMessage(secret.encrypted, input);
                     
                     if (decrypted) {
@@ -146,13 +312,157 @@
                 }
             }
             
-            // No matching password found
             result.className = 'fail';
             result.textContent = '✗ ACCESS DENIED\n\nYou need to look deeper...';
         }
 
         document.getElementById('password').addEventListener('keypress', function(e) {
             if (e.key === 'Enter') checkPassword();
+        });
+
+        // ADMIN FUNCTIONS
+        async function showAdminLogin() {
+            const password = prompt("Enter admin password:");
+            if (!password) return;
+            
+            const hash = await hashPassword(password);
+            if (hash !== ADMIN_HASH) {
+                alert('❌ Invalid admin password');
+                return;
+            }
+
+            // Ask for GitHub token
+            githubToken = prompt("Enter your GitHub Personal Access Token:\n(Settings → Developer settings → Personal access tokens → Tokens (classic))");
+            if (!githubToken) {
+                alert('❌ GitHub token required for admin mode');
+                return;
+            }
+
+            document.getElementById('mainPanel').style.display = 'none';
+            document.getElementById('adminPanel').style.display = 'block';
+            document.getElementById('repoInfo').textContent = `${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}`;
+            refreshSecretList();
+        }
+
+        function exitAdmin() {
+            document.getElementById('mainPanel').style.display = 'block';
+            document.getElementById('adminPanel').style.display = 'none';
+            document.getElementById('newPassword').value = '';
+            document.getElementById('newMessage').value = '';
+            document.getElementById('addResult').innerHTML = '';
+            githubToken = null;
+        }
+
+        async function reloadSecrets() {
+            const addResult = document.getElementById('addResult');
+            addResult.className = 'loading';
+            addResult.textContent = '⏳ Loading from GitHub...';
+            
+            const success = await loadSecretsFromGitHub();
+            
+            if (success) {
+                addResult.className = 'success';
+                addResult.textContent = `✓ Reloaded ${secrets.length} secrets from GitHub`;
+                refreshSecretList();
+            } else {
+                addResult.className = 'fail';
+                addResult.textContent = '✗ Failed to reload from GitHub';
+            }
+        }
+
+        async function addSecret() {
+            const password = document.getElementById('newPassword').value.toLowerCase().trim();
+            const message = document.getElementById('newMessage').value;
+            const addResult = document.getElementById('addResult');
+            
+            if (!password || !message) {
+                addResult.className = 'fail';
+                addResult.textContent = '❌ Please enter both password and message!';
+                return;
+            }
+
+            const hash = await hashPassword(password);
+            
+            // Check if exists
+            const existingIndex = secrets.findIndex(s => s.hash === hash);
+            if (existingIndex !== -1) {
+                if (!confirm('This password already exists. Overwrite?')) {
+                    return;
+                }
+                secrets.splice(existingIndex, 1);
+            }
+
+            const encrypted = encryptMessage(message, password);
+            secrets.push({
+                hash: hash,
+                encrypted: encrypted,
+                password: password,
+                message: message
+            });
+
+            // Save to GitHub
+            addResult.className = 'loading';
+            addResult.textContent = '⏳ Pushing to GitHub...';
+
+            try {
+                await saveSecretsToGitHub();
+                addResult.className = 'success';
+                addResult.textContent = `✓ Secret added and pushed to GitHub!\nPassword: "${password}"`;
+                
+                document.getElementById('newPassword').value = '';
+                document.getElementById('newMessage').value = '';
+                refreshSecretList();
+            } catch (error) {
+                addResult.className = 'fail';
+                addResult.textContent = `✗ Failed to push to GitHub: ${error.message}`;
+            }
+        }
+
+        function refreshSecretList() {
+            const list = document.getElementById('secretList');
+            const count = document.getElementById('secretCount');
+            
+            count.textContent = secrets.length;
+            
+            if (secrets.length === 0) {
+                list.innerHTML = '<p style="color: #666; text-align: center; padding: 20px;">No secrets loaded</p>';
+                return;
+            }
+            
+            list.innerHTML = secrets.map((secret, index) => `
+                <div class="secret-item">
+                    <div>
+                        <strong>${secret.password ? `Password: "${secret.password}"` : 'Hash: ' + secret.hash.substring(0, 16) + '...'}</strong><br>
+                        ${secret.message ? `<small style="color: #888;">Message: ${secret.message.substring(0, 50)}${secret.message.length > 50 ? '...' : ''}</small>` : ''}
+                    </div>
+                    <button class="danger" onclick="deleteSecret(${index})">DELETE</button>
+                </div>
+            `).join('');
+        }
+
+        async function deleteSecret(index) {
+            if (!confirm('Delete this secret and push to GitHub?')) return;
+            
+            const addResult = document.getElementById('addResult');
+            secrets.splice(index, 1);
+
+            addResult.className = 'loading';
+            addResult.textContent = '⏳ Pushing to GitHub...';
+
+            try {
+                await saveSecretsToGitHub();
+                addResult.className = 'success';
+                addResult.textContent = '✓ Secret deleted and pushed to GitHub!';
+                refreshSecretList();
+            } catch (error) {
+                addResult.className = 'fail';
+                addResult.textContent = `✗ Failed to push to GitHub: ${error.message}`;
+            }
+        }
+
+        // Load secrets on page load
+        window.addEventListener('load', async () => {
+            await loadSecretsFromGitHub();
         });
     </script>
 </body>
