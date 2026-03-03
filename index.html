@@ -142,10 +142,12 @@
         <div id="adminPanel" class="admin-panel">
             <h2>⚙️ ADMIN MODE ⚙️</h2>
             
-            <div style="margin: 20px 0;">
-                <p class="info">Connected to GitHub: <span id="repoInfo"></span></p>
-                <button class="secondary" onclick="reloadSecrets()">🔄 RELOAD FROM GITHUB</button>
-            </div>
+        <div style="margin: 20px 0;">
+            <p class="info">Connected to GitHub: <span id="repoInfo"></span></p>
+            <button class="secondary" onclick="reloadSecrets()">🔄 RELOAD FROM GITHUB</button>
+            <button class="secondary" onclick="changeToken()">🔑 CHANGE TOKEN</button>
+            <button class="danger" onclick="clearToken()">🗑️ CLEAR TOKEN</button>
+        </div>
 
             <div style="margin: 20px 0;">
                 <h3 style="color: #d4af37;">Add New Secret</h3>
@@ -330,18 +332,52 @@
                 alert('❌ Invalid admin password');
                 return;
             }
-
-            // Ask for GitHub token
-            githubToken = prompt("Enter your GitHub Personal Access Token:\n(Settings → Developer settings → Personal access tokens → Tokens (classic))");
+        
+            // Check if token is already stored permanently
+            githubToken = localStorage.getItem('githubToken');
+            
             if (!githubToken) {
-                alert('❌ GitHub token required for admin mode');
-                return;
+                // Ask for GitHub token only first time
+                githubToken = prompt("Enter your GitHub Personal Access Token:\n(This will be saved for future use)");
+                if (!githubToken) {
+                    alert('❌ GitHub token required for admin mode');
+                    return;
+                }
+                // Store permanently in localStorage
+                localStorage.setItem('githubToken', githubToken);
+                alert('✓ GitHub token saved successfully!');
             }
-
+        
             document.getElementById('mainPanel').style.display = 'none';
             document.getElementById('adminPanel').style.display = 'block';
             document.getElementById('repoInfo').textContent = `${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}`;
             refreshSecretList();
+        }
+        
+        function exitAdmin() {
+            document.getElementById('mainPanel').style.display = 'block';
+            document.getElementById('adminPanel').style.display = 'none';
+            document.getElementById('newPassword').value = '';
+            document.getElementById('newMessage').value = '';
+            document.getElementById('addResult').innerHTML = '';
+            // Token stays in localStorage - no need to clear
+        }
+        
+        function changeToken() {
+            const newToken = prompt("Enter new GitHub Personal Access Token:");
+            if (!newToken) return;
+            
+            localStorage.setItem('githubToken', newToken);
+            githubToken = newToken;
+            alert('✓ GitHub token updated!');
+        }
+        
+        function clearToken() {
+            if (confirm('Clear stored GitHub token? You will need to re-enter it next time.')) {
+                localStorage.removeItem('githubToken');
+                githubToken = null;
+                alert('✓ Token cleared. You will be asked for a new token on next admin login.');
+            }
         }
 
         function exitAdmin() {
